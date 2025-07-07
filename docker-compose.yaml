@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  mimicmotion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mimicmotion:latest
+    container_name: mimicmotion
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - PYTHONUNBUFFERED=1
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:256
+      - HF_ENDPOINT=https://hf-mirror.com  # Optional: for faster downloads in some regions
+    volumes:
+      # Mount input/output directories
+      - ./outputs:/app/outputs
+      - ./configs:/app/configs
+      - ./assets:/app/assets
+      # Optional: mount models directory to avoid re-downloading
+      - ./models:/app/models
+    command: ["conda", "run", "-n", "mimicmotion", "python", "inference.py", "--inference_config", "configs/test.yaml"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
