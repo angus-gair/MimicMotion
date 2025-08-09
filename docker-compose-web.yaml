@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  mimicmotion-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: mimicmotion:web
+    container_name: mimicmotion-web
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - PYTHONUNBUFFERED=1
+      - PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:256
+      - GRADIO_SERVER_NAME=0.0.0.0
+      - GRADIO_SERVER_PORT=7860
+    volumes:
+      - ./outputs:/app/outputs
+      - ./configs:/app/configs
+      - ./assets:/app/assets
+      - ./models:/app/models
+    ports:
+      - "7860:7860"  # Expose Gradio port
+    command: ["python", "app.py"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

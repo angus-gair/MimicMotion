@@ -1,0 +1,46 @@
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3.11-dev \
+    python3-pip \
+    git \
+    wget \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set python3.11 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1
+
+# Upgrade pip
+RUN python3 -m pip install --upgrade pip
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Install PyTorch with CUDA support
+RUN pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p models/DWPose outputs
+
+# Download model weights (optional - can be mounted as volume)
+RUN wget -O models/DWPose/yolox_l.onnx "https://huggingface.co/yzd-v/DWPose/resolve/main/yolox_l.onnx" && \
+    wget -O models/DWPose/dw-ll_ucoco_384.onnx "https://huggingface.co/yzd-v/DWPose/resolve/main/dw-ll_ucoco_384.onnx" && \
+    wget -O models/MimicMotion_1-1.pth "https://huggingface.co/tencent/MimicMotion/resolve/main/MimicMotion_1-1.pth"
+
+# Expose Gradio port
+EXPOSE 7860
+
+# Run the web app
+CMD ["python", "app.py"]
